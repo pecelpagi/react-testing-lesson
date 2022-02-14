@@ -11,23 +11,58 @@ import thunkMiddleware from 'redux-thunk';
 
 export const mockStore = configureStore([thunkMiddleware]);
 
-it('should create an action to search robots', () => {
-    const text = 'wooo';
-    const expectedAction = {
-        type: CHANGE_SEARCHFIELD,
-        payload: text
-    };
+describe('actions test', () => {
+    beforeEach(() => {
+        fetch.resetMocks();
+    });
 
-    expect(actions.setSearchField(text)).toEqual(expectedAction);
-});
+    it('should create an action to search robots', () => {
+        const text = 'wooo';
+        const expectedAction = {
+            type: CHANGE_SEARCHFIELD,
+            payload: text
+        };
 
-it('handles requesting robots API', () => {
-    const store = mockStore();
-    store.dispatch(actions.requestRobots());
-    const action = store.getActions();
-    const expectedAction = {
-        type: REQUEST_ROBOTS_PENDING,
-    };
+        expect(actions.setSearchField(text)).toEqual(expectedAction);
+    });
 
-    expect(action[0]).toEqual(expectedAction);
+    it('successfully requested robots API', (done) => {
+        expect.assertions(1);
+
+        fetch.mockResponseOnce(JSON.stringify([]));
+
+        const expectedActions = [
+            { type: REQUEST_ROBOTS_PENDING },
+            {
+                type: REQUEST_ROBOTS_SUCCESS,
+                payload: []
+            }
+        ];
+
+        const store = mockStore();
+        store.dispatch(actions.requestRobots()).then(() => {
+            expect(store.getActions()).toEqual(expectedActions);
+            done();
+        })
+    });
+
+    it('failed requesting robots API', (done) => {
+        expect.assertions(1);
+
+        fetch.mockRejectOnce(() => (Promise.reject('failed')));
+
+        const expectedActions = [
+            { type: REQUEST_ROBOTS_PENDING },
+            {
+                type: REQUEST_ROBOTS_FAILED,
+                payload: 'failed'
+            }
+        ];
+
+        const store = mockStore();
+        store.dispatch(actions.requestRobots()).then((res) => Promise.reject()).catch(() => {
+            expect(store.getActions()).toEqual(expectedActions);
+            done();
+        });
+    });
 })
